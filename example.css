@@ -1,0 +1,123 @@
+#notific-root {
+	font-size: 13px;
+	background: none;
+	padding: 0;
+	position: fixed;
+	right: 375px;
+	bottom: 1%;
+	width: 0;
+	z-index: 9;
+	color: #555;
+}
+
+@-webkit-keyframes notific {
+	0% {
+		opacity: 0;
+		left: 900px;
+	}
+
+	100% {
+		opacity: 1;
+		left: 0;
+	}
+}
+
+@keyframes notific {
+	0% {
+		opacity: 0;
+		left: 900px;
+	}
+
+	100% {
+		opacity: 1;
+		left: 0;
+	}
+}
+
+#notific-root input {
+	display: none;
+}
+
+#notific-root input:checked+label {
+	display: block;
+	left: 2000px;
+	opacity: 0;
+	cursor: default;
+	-webkit-transition-duration: 0.2s;
+	transition-duration: 0.2s;
+	-webkit-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+	transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#notific-root label {
+	position: relative;
+	width: 360px;
+	min-height: 80px;
+	opacity: 1;
+	left: 0;
+	display: block;
+	background-color: #fff;
+	padding-top: 8px;
+	margin-bottom: 15px;
+	cursor: pointer;
+	text-align: left;
+	-webkit-animation: notific 1s ease;
+	animation: notific 1s ease;
+	-webkit-box-shadow: 0 0 8px rgba(0, 0, 0, 0.18), 0 8px 16px rgba(0, 0, 0, 0.36);
+	box-shadow: 0 0 8px rgba(0, 0, 0, 0.18), 0 8px 16px rgba(0, 0, 0, 0.36);
+}
+
+#notific-root label::after {
+	content: "×";
+	display: block;
+	position: absolute;
+	top: 6px;
+	right: 8px;
+	width: 13px;
+	height: 15px;
+	font-weight: bold;
+	font-size: 18px;
+	line-height: 17px;
+	padding-left: 2px;
+}
+
+#notific-root label:hover::after {
+	background: #555;
+	color: #fff;
+	border-radius: 50%;
+}
+
+#notific-root label[for='notific-2'] {
+	-webkit-animation: notific 1.2s ease;
+	animation: notific 1.2s ease;
+}
+
+#notific-root label[for='notific-3'] {
+	-webkit-animation: notific 1.4s ease;
+	animation: notific 1.4s ease;
+}
+
+#notific-root label[for='notific-4'] {
+	-webkit-animation: notific 1.6s ease;
+	animation: notific 1.6s ease;
+}
+
+#notific-root img {
+	display: block;
+	float: left;
+	margin-right: 15px;
+	margin-top: -8px;
+}
+
+#notific-root strong {
+	display: inline-block;
+	font-weight: normal;
+	font-size: 14px;
+	margin-bottom: 3px;
+}
+
+#notific-root small {
+	display: block;
+	margin-top: 4px;
+	color: #aaa;
+}
