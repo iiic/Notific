@@ -6,7 +6,7 @@
 * @see https://iiic.dev/youtube-widgetic
 * @license https://creativecommons.org/licenses/by-sa/4.0/legalcode.cs CC BY-SA 4.0
 * @since Q2 2020
-* @version 0.1
+* @version 0.2
 * @readonly
 */
 const NotificPrivate = class
@@ -18,7 +18,7 @@ const NotificPrivate = class
 	 * @description default settings… can be overwritten
 	 */
 	settings = {
-		initAskForPermissions: true, // this can be a bit aggressive, use carefully
+		initAskForPermissions: false, // this can be a bit aggressive, use carefully
 		onTheFlyAskForPermissions: false, // this can be a bit aggressive, use carefully
 		permissionRequestTimeout: 8, // in s
 		autoCloseAfter: 15, // in s
@@ -243,7 +243,7 @@ const NotificPrivate = class
 * @see https://iiic.dev/youtube-widgetic
 * @license https://creativecommons.org/licenses/by-sa/4.0/legalcode.cs CC BY-SA 4.0
 * @since Q2 2020
-* @version 0.1
+* @version 0.2
 */
 export class Notific
 {
@@ -447,7 +447,6 @@ export class Notific
 		{
 			if (
 				this.settings.browserNotificationsPossible !== false
-				&& this.settings.initAskForPermissions
 				&& this.settings.elementsOrNotificationStrategy > Notific.ONLY_PAGE_ELEMENTS
 			) {
 				if ( 'Notification' in window ) {
@@ -455,23 +454,28 @@ export class Notific
 						this.settings.browserNotificationsPossible = true;
 						resolve( true );
 					} else {
-						const timeout = setTimeout( () =>
-						{
+						if ( this.settings.initAskForPermissions ) {
+							const timeout = setTimeout( () =>
+							{
+								this.settings.browserNotificationsPossible = false;
+								resolve( true );
+							}, Number( this.settings.permissionRequestTimeout ) * 1000 );
+							Notification.requestPermission().then( ( /** @type { String } */ permission ) =>
+							{
+								if ( permission === Notific.PERMISSIONS_GRANTED ) {
+									this.settings.browserNotificationsPossible = true;
+									clearTimeout( timeout );
+									resolve( true );
+								} else {
+									this.settings.browserNotificationsPossible = false;
+									clearTimeout( timeout );
+									resolve( true );
+								}
+							} );
+						} else {
 							this.settings.browserNotificationsPossible = false;
 							resolve( true );
-						}, Number( this.settings.permissionRequestTimeout ) * 1000 );
-						Notification.requestPermission().then( ( /** @type { String } */ permission ) =>
-						{
-							if ( permission === Notific.PERMISSIONS_GRANTED ) {
-								this.settings.browserNotificationsPossible = true;
-								clearTimeout( timeout );
-								resolve( true );
-							} else {
-								this.settings.browserNotificationsPossible = false;
-								clearTimeout( timeout );
-								resolve( true );
-							}
-						} );
+						}
 					}
 				} else {
 					this.settings.browserNotificationsPossible = false;
@@ -506,3 +510,10 @@ export class Notific
 		return this;
 	}
 };
+
+Object.defineProperty( window, 'Notific', {
+	value: Notific,
+	writable: false,
+	configurable: true,
+	enumerable: false,
+} );
