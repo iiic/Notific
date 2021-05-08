@@ -1,5 +1,5 @@
 #notific-root {
-	font-size: 13px;
+	font-size: 1rem;
 	background: none;
 	padding: 0;
 	position: fixed;
@@ -57,8 +57,8 @@
 	left: 0;
 	display: block;
 	background-color: #fff;
-	padding-top: 8px;
-	margin-bottom: 15px;
+	padding-top: 0.1em;
+	margin-bottom: 1em;
 	cursor: pointer;
 	text-align: left;
 	-webkit-animation: notific 1s ease;
@@ -71,14 +71,15 @@
 	content: "×";
 	display: block;
 	position: absolute;
-	top: 6px;
-	right: 8px;
-	width: 13px;
-	height: 15px;
+	top: 0.4em;
+	right: 0.4em;
+	width: 0.8em;
+	height: 0.9em;
 	font-weight: bold;
-	font-size: 18px;
-	line-height: 17px;
+	font-size: larger;
+	line-height: 1em;
 	padding-left: 2px;
+	text-indent: 1px;
 }
 
 #notific-root label:hover::after {
@@ -102,22 +103,32 @@
 	animation: notific 1.6s ease;
 }
 
-#notific-root img {
+#notific-root [role="alert"] {
 	display: block;
+	padding: 0.5em;
+}
+
+#notific-root [role="alert"]::after {
+	content: '';
+	display: block;
+	clear: both;
+}
+
+#notific-root picture {
 	float: left;
-	margin-right: 15px;
-	margin-top: -8px;
+	margin: 0.1em 0.8em 0.1em 0.5em;
 }
 
 #notific-root strong {
 	display: inline-block;
+	width: calc(100% - 1rem);
 	font-weight: normal;
-	font-size: 14px;
-	margin-bottom: 3px;
+	font-size: large;
+	margin-bottom: 0.4em;
 }
 
 #notific-root small {
-	display: block;
-	margin-top: 4px;
+	display: inline-block;
+	margin-top: 1em;
 	color: #aaa;
 }

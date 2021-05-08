@@ -3,14 +3,23 @@
 * @module NotificPrivate
 * @classdesc Create browser native Notification or as a substitute page element notification (depends of settings) - private part
 * @author ic < ic.czech@gmail.com >
-* @see https://iiic.dev/youtube-widgetic
+* @see https://iiic.dev/notific
 * @license https://creativecommons.org/licenses/by-sa/4.0/legalcode.cs CC BY-SA 4.0
 * @since Q2 2020
-* @version 0.2
+* @version 0.3
 * @readonly
 */
 const NotificPrivate = class
 {
+
+	static TYPE_STRING = 'String';
+	static LINK_NODE_NAME = 'LINK';
+	static INPUT_NODE_NAME = 'INPUT';
+	static LABEL_NODE_NAME = 'LABEL';
+	static PICTURE_NODE_NAME = 'PICTURE';
+	static IMAGE_NODE_NAME = 'IMG';
+	static BR_NODE_NAME = 'BR';
+	static NOTIFIC_ID_STARTS_ON = 1;
 
 	/**
 	 * @public
@@ -24,43 +33,66 @@ const NotificPrivate = class
 		autoCloseAfter: 15, // in s
 		elementsOrNotificationStrategy: Notific.COMBINE_BY_DOCUMENT_VISIBILITY,
 		browserNotificationsPossible: null, // permissions && browser compatibility
-		rootElement: document.getElementById( 'notific-root' ),
-		notificationsLastId: 0,
-		modulesImportPath: 'https://iiic.dev/js/modules',
-		elementNotification: {
+		rootElementId: 'notific-root',
+		askForPermissionsId: 'get-notification-permission',
+		resultSnippetElements: {
+			title: 'STRONG',
+			alert: 'SPAN',
+			body: 'SPAN',
+			hostname: 'SMALL',
+		},
+		structure: [
+			'title',
+			'br',
+			'image',
+			'body',
+			'hostname'
+		],
+		resultSnippetBehaviour: {
 			allowLineBreak: true,
-			alertNodeName: 'SPAN',
 			flashIdPrefix: 'notific-',
 			titleSuffix: '-title',
 			bodySuffix: '-body',
-			titleNodeName: 'STRONG',
-			bodyNodeName: 'SPAN',
-			smallNodeName: 'SMALL',
 			defaultImage: {
 				src: null,
-				alt: 'ilustrační obrázek notifikace',
+				width: 80, // int in px
+				height: 80 // int in px
 			}
 		},
+		texts: {
+			defaultImageAlt: 'default notification image',
+			askPermissionsResultSuccess: 'Now you can receive browser Notifications from this app.',
+			askPermissionsResultCanceled: 'You canceled the possibility to display Notifications, this status is now remembered in the browser, to re-enable it, click on the small lock icon in front of the url address of this page and select allowed or ask.',
+			permissionsResultAlreadyGranted: 'You have already allowed the default browser Notification for this app.',
+		},
+		CSSStyleSheets: [
+			{ href: '/notific.css', integrity: 'sha256-DErgeoS4SQg0UMgS8E4mhJbyqNPHbyooBGsPqlRQviw=' }
+		],
+		preloadImages: [], // can be used if css contains images
+		modulesImportPath: 'https://iiic.dev/js/modules',
 		autoRun: true,
 	};
 
 	/**
 	 * @public
-	 * @type {Function}
+	 * @type {HTMLElement}
 	 */
-	importWithIntegrity;
+	rootElement = HTMLElement;
 
-	browserNotification ( /** @type {Object} */ options )
+	async initImportWithIntegrity ( /** @type {Object} */ settings = null )
 	{
-		return new Notification( options.title, options );
-	}
 
-	async initImportWithIntegrity ( /** @type {Object} */ settings )
-	{
+		console.groupCollapsed( '%c NotificPrivate %c initImportWithIntegrity %c(' + ( settings === null ? 'without settings' : 'with settings' ) + ')',
+			Notific.CONSOLE.CLASS_NAME,
+			Notific.CONSOLE.METHOD_NAME,
+			Notific.CONSOLE.INTEREST_PARAMETER
+		);
+		console.debug( { arguments } );
+		console.groupEnd();
+
 		return new Promise( ( /** @type { Function } */ resolve ) =>
 		{
 			const ip = settings && settings.modulesImportPath ? settings.modulesImportPath : this.settings.modulesImportPath;
-			// @ts-ignore
 			import( ip + '/importWithIntegrity.mjs' ).then( ( /** @type {Module} */ module ) =>
 			{
 				/** @type {Function} */
@@ -70,11 +102,15 @@ const NotificPrivate = class
 			{
 				const SKIP_SECURITY_URL = '#skip-security-test-only'
 				if ( window.location.hash === SKIP_SECURITY_URL ) {
+					console.warn( '%c NotificPrivate %c initImportWithIntegrity %c without security!',
+						Notific.CONSOLE.CLASS_NAME,
+						Notific.CONSOLE.METHOD_NAME,
+						Notific.CONSOLE.WARNING
+					);
 					this.importWithIntegrity = (/** @type {String} */ path ) =>
 					{
 						return new Promise( ( /** @type {Function} */ resolve ) =>
 						{
-							// @ts-ignore
 							import( path ).then( ( /** @type {Module} */ module ) =>
 							{
 								resolve( module );
@@ -89,147 +125,238 @@ const NotificPrivate = class
 		} );
 	}
 
-	pageElementNotification ( /** @type {Object} */ options )
+	browserNotification ( /** @type {Object} */ options )
+	{
+		return new Notification( options.title, options );
+	}
+
+	async initImportWithIntegrity ( /** @type {Object} */ settings )
 	{
 		return new Promise( ( /** @type { Function } */ resolve ) =>
 		{
-			/** @type {HTMLElement} */
-			const root = this.settings.rootElement;
-
-			const el = this.elCreator;
-
-			el.asyncHiddenInputRadio().then( ( /** @type {HTMLInputElement} */ input ) =>
+			const ip = settings && settings.modulesImportPath ? settings.modulesImportPath : this.settings.modulesImportPath;
+			import( ip + '/importWithIntegrity.mjs' ).then( ( /** @type {Module} */ module ) =>
 			{
-				root.appendChild( input );
-				resolve( input );
-				const flash = el.singleFlashLabel();
-				const alert = el.alert( options.body );
-
-				const title = el.title( options.title );
-				if ( title ) {
-					alert.appendChild( title );
+				/** @type {Function} */
+				this.importWithIntegrity = module.importWithIntegrity;
+				resolve( true );
+			} ).catch( () =>
+			{
+				const SKIP_SECURITY_URL = '#skip-security-test-only'
+				if ( window.location.hash === SKIP_SECURITY_URL ) {
+					this.importWithIntegrity = (/** @type {String} */ path ) =>
+					{
+						return new Promise( ( /** @type {Function} */ resolve ) =>
+						{
+							import( path ).then( ( /** @type {Module} */ module ) =>
+							{
+								resolve( module );
+							} );
+						} );
+					};
+					resolve( true );
+				} else {
+					throw 'Security Error : Import with integrity module is missing! You can try to skip this error by adding ' + SKIP_SECURITY_URL + ' hash into website URL';
 				}
-				alert.appendChild( el.br() );
-				const image = el.image( options.image, options.title );
-				if ( image ) {
-					alert.appendChild( image );
-				}
-				const body = el.body( options.body );
-				if ( body ) {
-					alert.appendChild( body );
-				}
-
-				alert.appendChild( el.small( window.location.hostname ) );
-
-				flash.appendChild( alert );
-				root.appendChild( flash );
 			} );
 		} );
 	}
 
-	elCreator = {
-		br: () =>
+	async pageElementNotification ( /** @type {Object} */ options )
+	{
+		console.groupCollapsed( '%c Notific %c pageElementNotification',
+			Notific.CONSOLE.CLASS_NAME,
+			Notific.CONSOLE.METHOD_NAME
+		);
+		console.debug( { options } );
+
+		const id = this.settings.resultSnippetBehaviour.flashIdPrefix + String( Notific.notificationsLastId++ );
+
+		/** @type {HTMLInputElement} */
+		const input = await this.elCreator.hiddenInputRadio( id );
+
+		/** @type {HTMLLabelElement} */
+		const label = await this.elCreator.singleFlashLabel( id );
+
+		/** @type {HTMLSpanElement} */
+		const alertElement = await this.elCreator.alert( options.body, id );
+
+		this.settings.structure.forEach( ( /** @type {String} */ method ) =>
 		{
-			if ( this.settings.elementNotification.allowLineBreak ) {
-				return document.createElement( 'BR' );
+			if ( method in this.elCreator ) {
+				this.elCreator[ method ]( alertElement, options, id );
 			}
+		} );
+
+		label.appendChild( alertElement );
+
+		console.groupEnd();
+
+		return input;
+	}
+
+	elCreator = {
+		br: ( /** @type {HTMLElement} */ parentElement, /** @type {Object} */ options ) =>
+		{
+			return new Promise( ( /** @type {Function} */ resolve ) =>
+			{
+				if ( this.settings.resultSnippetBehaviour.allowLineBreak ) {
+					parentElement.appendChild( document.createElement( NotificPrivate.BR_NODE_NAME ) );
+				}
+				resolve( true );
+			} );
 		},
-		asyncHiddenInputRadio: () =>
+		hiddenInputRadio: ( /** @type {String} */ id ) =>
 		{
 			return new Promise( ( /** @type { Function } */ resolve ) =>
 			{
 				/** @type {HTMLInputElement} */
-				const input = ( document.createElement( 'INPUT' ) );
+				const input = ( document.createElement( NotificPrivate.INPUT_NODE_NAME ) );
 
 				input.type = 'radio';
 				input.hidden = true;
-				input.id = this.settings.elementNotification.flashIdPrefix + String( this.settings.notificationsLastId );
+				input.id = id;
+
 				this.importWithIntegrity(
-					'https://iiic.dev/js/modules/element/bindFunction.mjs',
-					'It+wjKjaTpHHrAxhjhTf+ul9s4JcRCghE5jgzx42W3o='
-					// @ts-ignore
-				).then( (/** @type { Module } */ bindFunction ) =>
+					this.settings.modulesImportPath + '/element/bindFunction.mjs',
+					'sha256-It+wjKjaTpHHrAxhjhTf+ul9s4JcRCghE5jgzx42W3o='
+				).then( ( /** @type {Module} */ bindFunction ) =>
 				{
 					new bindFunction.append( Element );
-					// @ts-ignore
 					input.bindFunction( 'close', function ()
 					{
 						this.checked = true;
 					} );
+					this.rootElement.appendChild( input );
 					resolve( input );
 				} );
 			} );
 		},
-		singleFlashLabel: () =>
+		singleFlashLabel: ( /** @type {String} */ id ) =>
 		{
-			/** @type {HTMLLabelElement} */
-			const label = ( document.createElement( 'LABEL' ) );
+			return new Promise( ( /** @type {Function} */ resolve ) =>
+			{
+				/** @type {HTMLLabelElement} */
+				const label = ( document.createElement( NotificPrivate.LABEL_NODE_NAME ) );
 
-			label.htmlFor = this.settings.elementNotification.flashIdPrefix + String( this.settings.notificationsLastId );
-			return label;
+				label.htmlFor = id;
+				this.rootElement.appendChild( label );
+				resolve( label );
+			} );
 		},
-		alert: ( /** @type {String} */ body ) =>
+		alert: ( /** @type {String} */ body, /** @type {String} */ id ) =>
 		{
-			/** @type {HTMLElement} */
-			const el = ( document.createElement( this.settings.elementNotification.alertNodeName ) );
+			const NAME = 'alert';
+			return new Promise( ( /** @type {Function} */ resolve ) =>
+			{
 
-			el.tabIndex = 0;
-			el.setAttribute( 'role', 'alert' );
-			el.setAttribute( 'aria-hidden', 'false' );
-			el.setAttribute( 'aria-labelledby', this.settings.elementNotification.flashIdPrefix + String( this.settings.notificationsLastId ) + this.settings.elementNotification.titleSuffix );
-			if ( body ) {
-				el.setAttribute( 'aria-describedby', this.settings.elementNotification.flashIdPrefix + String( this.settings.notificationsLastId ) + this.settings.elementNotification.bodySuffix );
-			}
-			return el;
-		},
-		image: ( /** @type {String} */ path, /** @type {String} */ title ) =>
-		{
-			if ( this.settings.elementNotification.defaultImage.src || path ) {
-				/** @type {HTMLPictureElement} */
-				const picture = ( document.createElement( 'PICTURE' ) );
+				/** @type {String} */
+				const tag = this.settings.resultSnippetElements[ NAME ];
 
-				/** @type {HTMLImageElement} */
-				const img = ( document.createElement( 'IMG' ) );
+				if ( tag ) {
 
-				img.src = path ? path : this.settings.elementNotification.defaultImage.src;
-				img.alt = this.settings.elementNotification.defaultImage.alt ? this.settings.elementNotification.defaultImage.alt : title;
-				img.width = 80;
-				img.height = 80;
-				img.setAttribute( 'loading', 'lazy' );
+					/** @type {HTMLElement} */
+					const el = ( document.createElement( tag ) );
 
-				picture.appendChild( img );
-				return picture;
-			}
-			return null;
+					el.tabIndex = 0;
+					el.setAttribute( 'role', 'alert' );
+					el.setAttribute( 'aria-hidden', 'false' );
+					el.setAttribute( 'aria-labelledby', id + this.settings.resultSnippetBehaviour.titleSuffix );
+					if ( body ) {
+						el.setAttribute( 'aria-describedby', id + this.settings.resultSnippetBehaviour.bodySuffix );
+					}
+					resolve( el );
+				} else {
+					resolve( false );
+				}
+			} );
 		},
-		title: ( /** @type {String} */ title ) =>
+		image: ( /** @type {HTMLElement} */ parentElement, /** @type {Object} */ options ) =>
 		{
-			/** @type {HTMLElement} */
-			const el = document.createElement( this.settings.elementNotification.titleNodeName );
-			el.appendChild( document.createTextNode( title ) );
-			el.id = this.settings.elementNotification.flashIdPrefix + String( this.settings.notificationsLastId ) + this.settings.elementNotification.titleSuffix;
-			return el;
+			return new Promise( ( /** @type {Function} */ resolve ) =>
+			{
+				if ( options.image || this.settings.resultSnippetBehaviour.defaultImage.src ) {
+
+					/** @type {HTMLPictureElement} */
+					const picture = ( document.createElement( NotificPrivate.PICTURE_NODE_NAME ) );
+
+					/** @type {HTMLImageElement} */
+					const img = ( document.createElement( NotificPrivate.IMAGE_NODE_NAME ) );
+
+					img.src = options.image ? options.image : this.settings.resultSnippetBehaviour.defaultImage.src;
+					img.alt = this.settings.resultSnippetBehaviour.defaultImage.alt ? this.settings.resultSnippetBehaviour.defaultImage.alt : options.title;
+					img.width = this.settings.resultSnippetBehaviour.defaultImage.width;
+					img.height = this.settings.resultSnippetBehaviour.defaultImage.height;
+					// img.setAttribute( 'loading', 'lazy' );
+					img.setAttribute( 'crossorigin', 'anonymous' );
+
+					picture.appendChild( img );
+					parentElement.appendChild( picture );
+				}
+				resolve( true );
+			} );
 		},
-		body: ( /** @type {String} */ body ) =>
+		title: ( /** @type {HTMLElement} */ parentElement, /** @type {Object} */ options, /** @type {String} */ id ) =>
 		{
-			if ( body ) {
-				/** @type {HTMLElement} */
-				const el = document.createElement( this.settings.elementNotification.bodyNodeName );
-				el.appendChild( document.createTextNode( body ) );
-				el.id = this.settings.elementNotification.flashIdPrefix + String( this.settings.notificationsLastId ) + this.settings.elementNotification.bodySuffix;
-				return el;
-			}
-			return null;
+			const NAME = 'title';
+			return new Promise( ( /** @type {Function} */ resolve ) =>
+			{
+
+				/** @type {String} */
+				const tag = this.settings.resultSnippetElements[ NAME ];
+
+				if ( tag ) {
+
+					/** @type {HTMLElement} */
+					const el = document.createElement( tag );
+
+					el.appendChild( document.createTextNode( options.title ) );
+					el.id = id + this.settings.resultSnippetBehaviour.titleSuffix;
+					parentElement.appendChild( el );
+				}
+				resolve( true );
+			} );
 		},
-		small: ( /** @type {String} */ small ) =>
+		body: ( /** @type {HTMLElement} */ parentElement, /** @type {Object} */ options, /** @type {String} */ id ) =>
 		{
-			if ( small ) {
-				/** @type {HTMLElement} */
-				const el = document.createElement( this.settings.elementNotification.smallNodeName );
-				el.appendChild( document.createTextNode( small ) );
-				return el;
-			}
-			return null;
+			const NAME = 'body';
+			return new Promise( ( /** @type {Function} */ resolve ) =>
+			{
+
+				/** @type {String} */
+				const tag = this.settings.resultSnippetElements[ NAME ];
+
+				if ( tag ) {
+
+					/** @type {HTMLElement} */
+					const el = document.createElement( tag );
+
+					el.appendChild( document.createTextNode( options.body ) );
+					el.id = id + this.settings.resultSnippetBehaviour.bodySuffix;
+					parentElement.appendChild( el );
+				}
+				resolve( true );
+			} );
+		},
+		hostname: ( /** @type {HTMLElement} */ parentElement, /** @type {Object} */ options ) =>
+		{
+			const NAME = 'hostname';
+			return new Promise( ( /** @type {Function} */ resolve ) =>
+			{
+
+				/** @type {String} */
+				const tag = this.settings.resultSnippetElements[ NAME ];
+
+				if ( tag ) {
+
+					/** @type {HTMLElement} */
+					const el = document.createElement( tag );
+
+					el.appendChild( document.createTextNode( window.location.hostname ) );
+					parentElement.appendChild( el );
+				}
+				resolve( true );
+			} );
 		},
 	}
 
@@ -240,10 +367,10 @@ const NotificPrivate = class
 * @module Notific
 * @classdesc Create browser native Notification or as a substitute page element notification (depends of settings)
 * @author ic < ic.czech@gmail.com >
-* @see https://iiic.dev/youtube-widgetic
+* @see https://iiic.dev/notific
 * @license https://creativecommons.org/licenses/by-sa/4.0/legalcode.cs CC BY-SA 4.0
 * @since Q2 2020
-* @version 0.2
+* @version 0.3
 */
 export class Notific
 {
@@ -260,23 +387,49 @@ export class Notific
 	static ONLY_BROWSER_NOTIFICATIONS = 3;
 	static PERMISSIONS_GRANTED = 'granted';
 
+	/**
+	* @public
+	* @description colors used for browser's console output
+	*/
+	static CONSOLE = {
+		CLASS_NAME: 'color: gray',
+		METHOD_NAME: 'font-weight: normal; color: green',
+		INTEREST_PARAMETER: 'font-weight: normal; font-size: x-small; color: blue',
+		EVENT_TEXT: 'color: orange',
+		WARNING: 'color: red',
+	};
+
 	constructor (
 		/** @type {String} */ theTitle,
-		/** @type {Object | null} */ options = null,
-		/** @type {Object | null} */ settings = null
+		/** @type {Object | null} */ options = null
 	)
 	{
+		console.groupCollapsed( '%c Notific',
+			Notific.CONSOLE.CLASS_NAME
+		);
+		console.debug( '%c' + 'constructor',
+			Notific.CONSOLE.METHOD_NAME,
+			[ { arguments } ]
+		);
+
 		this._private = new NotificPrivate;
+
+		/** @type {HTMLScriptElement | null} */
+		const settingsElement = document.getElementById( 'notific-settings' );
+
+		/** @type {Object} */
+		const settings = settingsElement ? JSON.parse( settingsElement.text ) : null;
+
+		if ( options ) {
+			const keys = Object.keys( options );
+			keys.forEach( ( /** @type {String} */ key ) =>
+			{
+				this[ key ] = options[ key ];
+			} );
+		}
+		this.title = theTitle;
 		this._private.initImportWithIntegrity( settings ).then( () =>
 		{
-			if ( options ) {
-				const keys = Object.keys( options );
-				keys.forEach( ( /** @type {String} */ key ) =>
-				{
-					this[ key ] = options[ key ];
-				} );
-			}
-			this.title = theTitle;
 			if ( settings ) {
 				this.setSettings( settings ).then( () =>
 				{
@@ -288,7 +441,11 @@ export class Notific
 				this.run();
 			}
 		} );
+
+		console.groupEnd();
 	}
+
+	static notificationsLastId = NotificPrivate.NOTIFIC_ID_STARTS_ON;
 
 	actions = [];
 
@@ -329,13 +486,18 @@ export class Notific
 	vibrate = [];
 
 
-	/**
-	 * @description : Get dynamic Import function
-	 * @returns {Function}
-	 */
-	get importWithIntegrity ()
+	set rootElement ( /** @type {HTMLElement} */ htmlElement )
 	{
-		return this._private.importWithIntegrity;
+		this._private.rootElement = htmlElement;
+	}
+
+	/**
+	 * @description : get root element
+	 * @returns {HTMLElement} root element
+	 */
+	get rootElement ()
+	{
+		return this._private.rootElement;
 	}
 
 	/**
@@ -347,8 +509,29 @@ export class Notific
 		return this._private.settings;
 	}
 
+	/**
+	 * @description : Get dynamic Import function
+	 * @returns {Function}
+	 */
+	get importWithIntegrity ()
+	{
+		return this._private.importWithIntegrity;
+	}
+
+	get elCreator ()
+	{
+		return this._private.elCreator;
+	}
+
 	async setSettings ( /** @type {Object} */ inObject )
 	{
+		console.groupCollapsed( '%c Notific %c setSettings',
+			Notific.CONSOLE.CLASS_NAME,
+			Notific.CONSOLE.METHOD_NAME
+		);
+		console.debug( { arguments } );
+		console.groupEnd();
+
 		return new Promise( ( /** @type {Function} */ resolve ) =>
 		{
 			if ( inObject.modulesImportPath ) {
@@ -357,11 +540,9 @@ export class Notific
 			this.importWithIntegrity(
 				this.settings.modulesImportPath + '/object/deepAssign.mjs',
 				'sha256-qv6PwXwb5wOy4BdBQVGgGUXAdHKXMtY7HELWvcvag34='
-				// @ts-ignore
 			).then( ( /** @type {Module} */ deepAssign ) =>
 			{
 				new deepAssign.append( Object );
-				// @ts-ignore
 				this._private.settings = Object.deepAssign( this.settings, inObject ); // multi level assign
 				resolve( true );
 			} ).catch( () =>
@@ -372,73 +553,47 @@ export class Notific
 		} );
 	}
 
-	prepareNotification ()
-	{
-		if ( this.settings.elementsOrNotificationStrategy !== Notific.ONLY_BROWSER_NOTIFICATIONS ) {
-			if ( this.settings.rootElement ) {
-				this.settings.rootElement.querySelectorAll( 'label' ).forEach( ( /** @type {HTMLLabelElement} */ label ) =>
-				{
-					if ( label.htmlFor ) {
-						const num = label.htmlFor.split( '-' );
-						if ( Number( num[ 1 ] ) > this.settings.notificationsLastId ) {
-							this.settings.notificationsLastId = Number( num[ 1 ] );
-						}
-					}
-				} );
-				this.settings.notificationsLastId++;
-			} else {
-				throw 'Error : flashes root element not found';
-			}
-		}
-	}
-
 	async propagate ()
 	{
-		return new Promise( ( /** @type {Function} */ resolve ) =>
-		{
-			const options = {
-				actions: this.actions,
-				badge: this.badge,
-				body: this.body,
-				data: this.data,
-				dir: this.dir,
-				icon: this.icon,
-				image: this.image,
-				lang: this.lang,
-				renotify: this.renotify,
-				requireInteraction: this.requireInteraction,
-				silent: this.silent,
-				tag: this.tag,
-				title: this.title,
-				vibrate: this.vibrate,
-			};
-			if ( this.settings.elementsOrNotificationStrategy === Notific.ONLY_PAGE_ELEMENTS ) {
-				resolve( this._private.browserNotification( options ) );
-			} else if ( this.settings.elementsOrNotificationStrategy === Notific.COMBINE_BY_DOCUMENT_VISIBILITY ) {
-				if ( document.hidden ) {
-					resolve( this._private.browserNotification( options ) );
-				} else {
-					this._private.pageElementNotification( options ).then( ( /** @type {HTMLInputElement} */ input ) =>
-					{
-						resolve( input );
-					} );
-				}
-			} else if ( this.settings.elementsOrNotificationStrategy === Notific.COMBINE_BY_PERMISSIONS ) {
-				if ( Notification.permission === Notific.PERMISSIONS_GRANTED ) {
-					resolve( this._private.browserNotification( options ) );
-				} else {
-					this._private.pageElementNotification( options ).then( ( /** @type {HTMLInputElement} */ input ) =>
-					{
-						resolve( input );
-					} );
-				}
-			} else if ( this.settings.elementsOrNotificationStrategy === Notific.ONLY_BROWSER_NOTIFICATIONS ) {
-				this._private.pageElementNotification( options ).then( ( /** @type {HTMLInputElement} */ input ) =>
-				{
-					resolve( input );
-				} );
+		console.debug( '%c Notific %c propagate',
+			Notific.CONSOLE.CLASS_NAME,
+			Notific.CONSOLE.METHOD_NAME
+		);
+
+		const options = {
+			actions: this.actions,
+			badge: this.badge,
+			body: this.body,
+			data: this.data,
+			dir: this.dir,
+			icon: this.icon,
+			image: this.image,
+			lang: this.lang,
+			renotify: this.renotify,
+			requireInteraction: this.requireInteraction,
+			silent: this.silent,
+			tag: this.tag,
+			title: this.title,
+			vibrate: this.vibrate,
+		};
+
+		if ( this.settings.elementsOrNotificationStrategy === Notific.ONLY_PAGE_ELEMENTS ) {
+			return this._private.browserNotification( options );
+		} else if ( this.settings.elementsOrNotificationStrategy === Notific.COMBINE_BY_DOCUMENT_VISIBILITY ) {
+			if ( document.hidden ) {
+				return this._private.browserNotification( options );
+			} else {
+				return await this._private.pageElementNotification( options );
 			}
-		} );
+		} else if ( this.settings.elementsOrNotificationStrategy === Notific.COMBINE_BY_PERMISSIONS ) {
+			if ( Notification.permission === Notific.PERMISSIONS_GRANTED ) {
+				return this._private.browserNotification( options );
+			} else {
+				return await this._private.pageElementNotification( options );
+			}
+		} else if ( this.settings.elementsOrNotificationStrategy === Notific.ONLY_BROWSER_NOTIFICATIONS ) {
+			return await this._private.pageElementNotification( options );
+		}
 	}
 
 	async initAskForPermissions ()
@@ -485,27 +640,212 @@ export class Notific
 		} );
 	}
 
-	appendAutoClose ( /** @type {HTMLInputElement | Notification} */ notification )
+	appendAutoCloseOn ( /** @type {HTMLInputElement | Notification} */ notification )
 	{
 		if ( this.settings.autoCloseAfter ) {
 			setTimeout( function ()
 			{
-				// @ts-ignore
 				notification.close();
 			}, this.settings.autoCloseAfter * 1000 );
 		}
 	}
 
+	async addCSSStyleSheets ()
+	{
+		console.debug( '%c Notific %c addCSSStyleSheets',
+			Notific.CONSOLE.CLASS_NAME,
+			Notific.CONSOLE.METHOD_NAME
+		);
+
+		return new Promise( ( /** @type {Function} */ resolve ) =>
+		{
+			const usedStyleSheets = new Set();
+			[ ...document.styleSheets ].forEach( ( /** @type {CSSStyleSheet} */ css ) =>
+			{
+				if ( css.disabled === false ) {
+					usedStyleSheets.add( css.href );
+				}
+			} );
+			this.settings.CSSStyleSheets.forEach( ( /** @type {Object} */ assignment ) =>
+			{
+				let url = URL;
+				if ( assignment.href.startsWith( 'https://', 0 ) || assignment.href.startsWith( 'http://', 0 ) ) {
+					url = new URL( assignment.href );
+				} else {
+					url = new URL( assignment.href, window.location.protocol + '//' + window.location.hostname );
+				}
+				if ( !usedStyleSheets.has( url.href ) ) {
+					fetch( url.href, {
+						method: 'HEAD',
+						credentials: 'omit',
+						cache: 'force-cache',
+						referrerPolicy: 'no-referrer',
+						redirect: 'manual',
+						mode: 'cors'
+					} ).then( ( /** @type {Response} */ response ) =>
+					{
+						if ( response.ok ) {
+							return true;
+						} else {
+							throw 'error';
+						}
+					} ).then( () =>
+					{
+						/** @type {HTMLLinkElement} */
+						const link = document.createElement( NotificPrivate.LINK_NODE_NAME );
+
+						link.href = url.href;
+						link.rel = 'stylesheet';
+						link.setAttribute( 'crossorigin', 'anonymous' );
+						if ( assignment.integrity ) {
+							link.integrity = assignment.integrity;
+						}
+						document.head.appendChild( link );
+					} ).catch( () =>
+					{
+						resolve( false );
+					} );
+				}
+			} );
+			resolve( true );
+		} );
+	}
+
+	checkRequirements ()
+	{
+		console.debug( '%c Notific %c checkRequirements',
+			Notific.CONSOLE.CLASS_NAME,
+			Notific.CONSOLE.METHOD_NAME
+		);
+
+		if ( !this.settings.rootElementId ) {
+			throw 'Root Element\'s id is missing';
+		}
+	}
+
+	initRootElement ()
+	{
+		console.debug( '%c Notific %c initRootElement',
+			Notific.CONSOLE.CLASS_NAME,
+			Notific.CONSOLE.METHOD_NAME
+		);
+
+		this.rootElement = document.getElementById( this.settings.rootElementId );
+	}
+
+	preloadImages ()
+	{
+		console.groupCollapsed( '%c Notific %c preloadImages',
+			Notific.CONSOLE.CLASS_NAME,
+			Notific.CONSOLE.METHOD_NAME
+		);
+		console.debug( this.settings.preloadImages );
+
+		this.settings.preloadImages.forEach( ( /** @type {URL|String} */ url ) =>
+		{
+
+			/** @type {String} */
+			const href = ( url.constructor.name === NotificPrivate.TYPE_STRING ) ? url : url.href;
+
+			/** @type {HTMLLinkElement} */
+			const link = document.createElement( NotificPrivate.LINK_NODE_NAME );
+
+			link.rel = 'preload';
+			link.href = href;
+			link.as = 'image';
+			// link.setAttribute( 'crossorigin', 'anonymous' ); // cannot be anonymous !
+			document.head.appendChild( link );
+		} );
+
+		console.groupEnd();
+	}
+
+	showResult ()
+	{
+		console.debug( '%c Notific %c showResult',
+			Notific.CONSOLE.CLASS_NAME,
+			Notific.CONSOLE.METHOD_NAME,
+		);
+
+		this.rootElement.hidden = false;
+	}
+
+	askForPermissionsEventListener ( /** @type {MouseEvent} */ event )
+	{
+		if ( Notification.permission === Notific.PERMISSIONS_GRANTED && 'Notific' in window && this.settings.texts.permissionsResultAlreadyGranted ) {
+			new Notific( this.settings.texts.permissionsResultAlreadyGranted );
+		} else {
+			const timeout = setTimeout( () =>
+			{
+				this.settings.browserNotificationsPossible = false;
+			}, Number( this.settings.permissionRequestTimeout ) * 1000 );
+			Notification.requestPermission().then( ( /** @type { String } */ permission ) =>
+			{
+				if ( permission === Notific.PERMISSIONS_GRANTED ) {
+					this.settings.browserNotificationsPossible = true;
+					clearTimeout( timeout );
+					if ( 'Notific' in window && this.settings.texts.askPermissionsResultSuccess ) {
+						new Notific( this.settings.texts.askPermissionsResultSuccess );
+					}
+				} else {
+					this.settings.browserNotificationsPossible = false;
+					clearTimeout( timeout );
+					if ( 'Notific' in window && this.settings.texts.askPermissionsResultCanceled ) {
+						new Notific( this.settings.texts.askPermissionsResultCanceled );
+					}
+				}
+			} );
+		}
+	}
+
+	async createAskForPermissionsAction ()
+	{
+		console.debug( '%c Notific %c createAskForPermissionsAction',
+			Notific.CONSOLE.CLASS_NAME,
+			Notific.CONSOLE.METHOD_NAME,
+		);
+
+		return new Promise( ( /** @type {Function} */ resolve ) =>
+		{
+			if ( this.settings.askForPermissionsId && 'Notification' in window ) {
+
+				/** @type {HTMLButtonElement | HTMLElement} */
+				const element = document.getElementById( this.settings.askForPermissionsId );
+
+				if ( element && Notific.notificationsLastId === NotificPrivate.NOTIFIC_ID_STARTS_ON ) {
+					element.addEventListener( 'click', this.askForPermissionsEventListener.bind( this ), {
+						capture: false,
+						once: false,
+						passive: true,
+					} );
+				}
+			}
+			resolve( true );
+		} );
+	}
+
 	run ()
 	{
+		console.groupCollapsed( '%c Notific %c run',
+			Notific.CONSOLE.CLASS_NAME,
+			Notific.CONSOLE.METHOD_NAME
+		);
+
+		this.checkRequirements();
+		this.createAskForPermissionsAction();
 		this.initAskForPermissions().then( () =>
 		{
-			this.prepareNotification();
+			this.addCSSStyleSheets();
+			this.initRootElement();
 			this.propagate().then( ( /** @type {HTMLInputElement | Notification} */ notification ) =>
 			{
-				this.appendAutoClose( notification );
+				this.appendAutoCloseOn( notification );
 			} );
+			this.showResult();
 		} );
+		this.preloadImages();
+
+		console.groupEnd();
 
 		return this;
 	}

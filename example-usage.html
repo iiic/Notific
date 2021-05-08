@@ -4,23 +4,65 @@
 <head>
 	<meta charset="utf-8">
 	<title>Notific html example</title>
-	<link rel="stylesheet" href="/example.css" crossorigin="anonymous" integrity="sha256-HZV5/XdMM0of5z7UJya/et5nOh8Z4Sq/O+1UQryusR8=">
+	<link rel="stylesheet" href="/notific.css" crossorigin="anonymous" integrity="sha256-DErgeoS4SQg0UMgS8E4mhJbyqNPHbyooBGsPqlRQviw=">
 </head>
 
 <body>
 
-	<div id="notific-root"></div>
-
-	<h1>Notific</h1>
+	<h1>Notific v 0.3</h1>
+	<p>On page or native Notifications</p>
+	<p>Just vanilla javascript, no <s>jQuery</s> or other libraries. Styles and examples included in repo. Same parameters as browser's default <code>Notification()</code> function</p>
 	<strong>Whats happening?</strong>
 	<p>This page is showing notifications periodically every 8 seconds, and automatically hide them 15 seconds from display. (so max 2 notifications at the same tame).</p>
-	<p>When tam is active notification is on page, when you switch to another tab, notifications will be shown by browser Notification() function.</p>
-	<p>The described behavior can be changed using the settings</p>
-	<script type="module" src="/notific.mjs" crossorigin="anonymous" integrity="sha256-2DemnnCDMczjBZfBngf0TCtELX946SMEEA4h+OCA0eU="></script>
+	<p>When tab is active notification is on page, when you switch to another tab, notifications will be shown by browser <code>Notification()</code> function.</p>
+	<p>If native notifications are not working <button id="get-notification-permission">Get permissions for <code>Nofification()</code> by clicking this button</button></p>
+	<p>The described behavior can be changed using the settings by inlined <code>text/json</code> object.</p>
+	<hr>
+	<h2 id="possible-problems">Possible problems?</h2>
+	<p>The mjs extension must have the correct mime type set to <code>text/javascript</code>, if it is too laborious, rename the suffix from <code>.mjs</code> to <code>.js</code>.</p>
+	<h2 id="services">Services</h2>
+	<p>Unpkg: <a href="https://unpkg.com/notific-on-page-or-native-notifications">https://unpkg.com/notific-on-page-or-native-notifications</a></p>
+	<p>NPM: <a href="https://www.npmjs.com/package/notific-on-page-or-native-notifications">https://www.npmjs.com/package/notific-on-page-or-native-notifications</a></p>
+	<h2 id="licence">Licence</h2>
+	<p><strong>CC BY-SA 4.0</strong></p>
+	<p>This work is licensed under the Creative Commons Attribution-ShareAlike 4.0 International License. To view a copy of this license, visit <a href="http://creativecommons.org/licenses/by-sa/4.0/">http://creativecommons.org/licenses/by-sa/4.0/</a> or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.</p>
+	<hr>
+	<p>For more info:</p>
+	<ul>
+		<li>Readme in standalone file <a href="/README.md">/README.md</a></li>
+		<li>Repo on <a href="https://github.com/iiic/notific">Github</a></li>
+		<li>Webpage about function <a href="https://iiic.dev/notific-on-page-or-native-notifications">https://iiic.dev/notific-on-page-or-native-notifications</a></li>
+	</ul>
+
+	<div id="notific-root" hidden></div>
+	<script type="text/json" id="notific-settings">
+		{
+			"modulesImportPath": "/modules",
+			"askForPermissionsId": "get-notification-permission",
+			"texts": {
+				"defaultImageAlt": "default text for image… maybe default image",
+				"askPermissionsResultSuccess": "Now you can receive browser Notifications.",
+				"askPermissionsResultCanceled": "You canceled the possibility to display Notifications, this status is now remembered in the browser, to re-enable it, click on the small lock icon in front of the url address of this page and select allowed or ask.",
+				"permissionsResultAlreadyGranted": "You have already allowed the default browser Notification."
+			}
+		}
+	</script>
+	<script type="module" src="/notific.mjs?v=0.3" crossorigin="anonymous" integrity="sha256-wuA31+60YeoRKlFT/YZoVHhDEK5aqPz+XO+e4tI3e+s="></script>
 	<script type="module">
-		import { Notific } from '/notific.mjs';
-		new Notific( 'now there will be notifications', { body: 'every 8 seconds, till the end of the, tab' } );
+		new Notific( 'now there will be notifications', {
+			body: 'every 8 seconds, till the end of the tab',
+			image: '/favicon.png',
+		} );
+
+		// new Notification( 'now there will be notifications', {
+		// 	body: 'every 8 seconds, till the end of the, tab',
+		// 	image: '/favicon.png',
+		// } );
+
 		setInterval( () => {
-			new Notific( 'this notification appears every 8 seconds', { body: '…and have body' } );
+			new Notific( 'now there will be notifications', {
+				body: 'every 8 seconds, till the end of the tab',
+				image: '/favicon.png',
+			} );
 		}, 8000 );
 	</script>
