@@ -12,10 +12,10 @@
 	<h1>Notific v 0.3</h1>
 	<p>On page or native Notifications</p>
 	<p>Just vanilla javascript, no <s>jQuery</s> or other libraries. Styles and examples included in repo. Same parameters as browser's default <code>Notification()</code> function</p>
-	<strong>Whats happening?</strong>
-	<p>This page is showing notifications periodically every 8 seconds, and automatically hide them 15 seconds from display. (so max 2 notifications at the same tame).</p>
+	<strong>What's happening?</strong>
+	<p>This page is showing notifications periodically every 8 seconds, and automatically hide them 15 seconds from display. (so max 2 notifications at the same time).</p>
 	<p>When tab is active notification is on page, when you switch to another tab, notifications will be shown by browser <code>Notification()</code> function.</p>
-	<p>If native notifications are not working <button id="get-notification-permission">Get permissions for <code>Nofification()</code> by clicking this button</button></p>
+	<p>If native notifications are not working <button id="get-notification-permission">Get permissions for <code>Notification()</code> by clicking this button</button></p>
 	<p>The described behavior can be changed using the settings by inlined <code>text/json</code> object.</p>
 	<hr>
 	<h2 id="possible-problems">Possible problems?</h2>
@@ -47,7 +47,7 @@
 			}
 		}
 	</script>
-	<script type="module" src="/notific.mjs?v=0.3" crossorigin="anonymous" integrity="sha256-wuA31+60YeoRKlFT/YZoVHhDEK5aqPz+XO+e4tI3e+s="></script>
+	<script type="module" src="/notific.mjs?v=0.3" crossorigin="anonymous" integrity="sha256-yMKKyuKCXFFdJa7+jAzdxNSSeLUNJYHtAkuFRgOMnWU="></script>
 	<script type="module">
 		new Notific( 'now there will be notifications', {
 			body: 'every 8 seconds, till the end of the tab',

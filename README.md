@@ -6,22 +6,22 @@ Just vanilla javascript, no `jQuery` or other libraries. Styles and examples inc
 # What's new in version 0.3 ?
 - script settings by json file
 - possible preload images and prefetch video
-- repaired bug with 2 notifications at the same time and element id duplicit.
-- modules are now includes at repository
+- repaired bug with 2 notifications at the same time and duplicate element ids
+- modules are now included in the repository
 
 # Use
 
 Polyfill is in single javascript module file `notific.mjs`. Include it into your site like this:
 
 ``` html
-<div id="notific-canvas" hidden></div>
+<div id="notific-root" hidden></div>
 <script type="text/json" id="notific-settings">
 	{
 		"modulesImportPath": "/modules",
 		"askForPermissionsId": "get-notification-permission"
 	}
 </script>
-<script type="module" src="/notific.mjs?v0.3" crossorigin="anonymous" integrity="sha256-wuA31+60YeoRKlFT/YZoVHhDEK5aqPz+XO+e4tI3e+s="></script>
+<script type="module" src="/notific.mjs?v=0.3" crossorigin="anonymous" integrity="sha256-yMKKyuKCXFFdJa7+jAzdxNSSeLUNJYHtAkuFRgOMnWU="></script>
 ```
 
 All other files like `example-usage.html` and `notific.css` are there to help, but they are not needed for Notific function.

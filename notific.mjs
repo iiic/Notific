@@ -20,6 +20,7 @@ const NotificPrivate = class
 	static IMAGE_NODE_NAME = 'IMG';
 	static BR_NODE_NAME = 'BR';
 	static NOTIFIC_ID_STARTS_ON = 1;
+	static askForPermissionsListenerAdded = false;
 
 	/**
 	 * @public
@@ -109,13 +110,7 @@ const NotificPrivate = class
 					);
 					this.importWithIntegrity = (/** @type {String} */ path ) =>
 					{
-						return new Promise( ( /** @type {Function} */ resolve ) =>
-						{
-							import( path ).then( ( /** @type {Module} */ module ) =>
-							{
-								resolve( module );
-							} );
-						} );
+						return import( path );
 					};
 					resolve( true );
 				} else {
@@ -130,36 +125,19 @@ const NotificPrivate = class
 		return new Notification( options.title, options );
 	}
 
-	async initImportWithIntegrity ( /** @type {Object} */ settings )
+	async browserNotificationWithFallback ( /** @type {Object} */ options )
 	{
-		return new Promise( ( /** @type { Function } */ resolve ) =>
-		{
-			const ip = settings && settings.modulesImportPath ? settings.modulesImportPath : this.settings.modulesImportPath;
-			import( ip + '/importWithIntegrity.mjs' ).then( ( /** @type {Module} */ module ) =>
-			{
-				/** @type {Function} */
-				this.importWithIntegrity = module.importWithIntegrity;
-				resolve( true );
-			} ).catch( () =>
-			{
-				const SKIP_SECURITY_URL = '#skip-security-test-only'
-				if ( window.location.hash === SKIP_SECURITY_URL ) {
-					this.importWithIntegrity = (/** @type {String} */ path ) =>
-					{
-						return new Promise( ( /** @type {Function} */ resolve ) =>
-						{
-							import( path ).then( ( /** @type {Module} */ module ) =>
-							{
-								resolve( module );
-							} );
-						} );
-					};
-					resolve( true );
-				} else {
-					throw 'Security Error : Import with integrity module is missing! You can try to skip this error by adding ' + SKIP_SECURITY_URL + ' hash into website URL';
-				}
-			} );
-		} );
+		try {
+			return this.browserNotification( options );
+		} catch ( /** @type {Error} */ error ) { // e.g. Chrome on Android allows only ServiceWorkerRegistration.showNotification()
+			console.warn( '%c NotificPrivate %c browserNotificationWithFallback %c browser Notification failed, page element is used instead',
+				Notific.CONSOLE.CLASS_NAME,
+				Notific.CONSOLE.METHOD_NAME,
+				Notific.CONSOLE.WARNING,
+				error
+			);
+			return await this.pageElementNotification( options );
+		}
 	}
 
 	async pageElementNotification ( /** @type {Object} */ options )
@@ -189,6 +167,10 @@ const NotificPrivate = class
 		} );
 
 		label.appendChild( alertElement );
+
+		// both at once, CSS 'input:checked + label' needs the label right after its input even with more notifications at the same time
+		this.rootElement.appendChild( input );
+		this.rootElement.appendChild( label );
 
 		console.groupEnd();
 
@@ -227,7 +209,6 @@ const NotificPrivate = class
 					{
 						this.checked = true;
 					} );
-					this.rootElement.appendChild( input );
 					resolve( input );
 				} );
 			} );
@@ -240,7 +221,6 @@ const NotificPrivate = class
 				const label = ( document.createElement( NotificPrivate.LABEL_NODE_NAME ) );
 
 				label.htmlFor = id;
-				this.rootElement.appendChild( label );
 				resolve( label );
 			} );
 		},
@@ -284,7 +264,7 @@ const NotificPrivate = class
 					const img = ( document.createElement( NotificPrivate.IMAGE_NODE_NAME ) );
 
 					img.src = options.image ? options.image : this.settings.resultSnippetBehaviour.defaultImage.src;
-					img.alt = this.settings.resultSnippetBehaviour.defaultImage.alt ? this.settings.resultSnippetBehaviour.defaultImage.alt : options.title;
+					img.alt = this.settings.texts.defaultImageAlt ? this.settings.texts.defaultImageAlt : options.title;
 					img.width = this.settings.resultSnippetBehaviour.defaultImage.width;
 					img.height = this.settings.resultSnippetBehaviour.defaultImage.height;
 					// img.setAttribute( 'loading', 'lazy' );
@@ -578,21 +558,21 @@ export class Notific
 		};
 
 		if ( this.settings.elementsOrNotificationStrategy === Notific.ONLY_PAGE_ELEMENTS ) {
-			return this._private.browserNotification( options );
+			return await this._private.pageElementNotification( options );
 		} else if ( this.settings.elementsOrNotificationStrategy === Notific.COMBINE_BY_DOCUMENT_VISIBILITY ) {
-			if ( document.hidden ) {
-				return this._private.browserNotification( options );
+			if ( document.hidden && this.settings.browserNotificationsPossible ) {
+				return await this._private.browserNotificationWithFallback( options );
 			} else {
 				return await this._private.pageElementNotification( options );
 			}
 		} else if ( this.settings.elementsOrNotificationStrategy === Notific.COMBINE_BY_PERMISSIONS ) {
-			if ( Notification.permission === Notific.PERMISSIONS_GRANTED ) {
-				return this._private.browserNotification( options );
+			if ( this.settings.browserNotificationsPossible ) {
+				return await this._private.browserNotificationWithFallback( options );
 			} else {
 				return await this._private.pageElementNotification( options );
 			}
 		} else if ( this.settings.elementsOrNotificationStrategy === Notific.ONLY_BROWSER_NOTIFICATIONS ) {
-			return await this._private.pageElementNotification( options );
+			return this._private.browserNotification( options );
 		}
 	}
 
@@ -636,6 +616,8 @@ export class Notific
 					this.settings.browserNotificationsPossible = false;
 					resolve( true );
 				}
+			} else {
+				resolve( true );
 			}
 		} );
 	}
@@ -668,12 +650,8 @@ export class Notific
 			} );
 			this.settings.CSSStyleSheets.forEach( ( /** @type {Object} */ assignment ) =>
 			{
-				let url = URL;
-				if ( assignment.href.startsWith( 'https://', 0 ) || assignment.href.startsWith( 'http://', 0 ) ) {
-					url = new URL( assignment.href );
-				} else {
-					url = new URL( assignment.href, window.location.protocol + '//' + window.location.hostname );
-				}
+				/** @type {URL} */
+				const url = new URL( assignment.href, document.baseURI ); // absolute href ignores the base, relative one keeps page's port
 				if ( !usedStyleSheets.has( url.href ) ) {
 					fetch( url.href, {
 						method: 'HEAD',
@@ -812,7 +790,8 @@ export class Notific
 				/** @type {HTMLButtonElement | HTMLElement} */
 				const element = document.getElementById( this.settings.askForPermissionsId );
 
-				if ( element && Notific.notificationsLastId === NotificPrivate.NOTIFIC_ID_STARTS_ON ) {
+				if ( element && !NotificPrivate.askForPermissionsListenerAdded ) {
+					NotificPrivate.askForPermissionsListenerAdded = true;
 					element.addEventListener( 'click', this.askForPermissionsEventListener.bind( this ), {
 						capture: false,
 						once: false,
