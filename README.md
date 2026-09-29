@@ -21,10 +21,33 @@ Polyfill is in single javascript module file `notific.mjs`. Include it into your
 		"askForPermissionsId": "get-notification-permission"
 	}
 </script>
-<script type="module" src="/notific.mjs?v=0.3" crossorigin="anonymous" integrity="sha256-yMKKyuKCXFFdJa7+jAzdxNSSeLUNJYHtAkuFRgOMnWU="></script>
+<script type="module" src="/notific.mjs?v=0.3" crossorigin="anonymous" integrity="sha256-3nzzhRl/ewML9yvxIwoj5N/5d+GVSElKo+IGAvdHzrI="></script>
 ```
 
 All other files like `example-usage.html` and `notific.css` are there to help, but they are not needed for Notific function.
+
+Styles in `notific.css` have media queries for small displays, so the page needs `<meta name="viewport" content="width=device-width, initial-scale=1">`.
+
+Modules are loaded by `fetch()` with integrity check and exactly the checked content is imported through `blob:` url. So a page with Content Security Policy needs `blob:` allowed in `script-src` and modules from other domain need CORS header `Access-Control-Allow-Origin`.
+
+# Events
+
+Event handlers `onclick`, `onclose`, `onerror` and `onshow` can be set in options (or later on the instance). They work for page and also for browser notifications, `this` in the handler is the Notific instance.
+
+``` js
+new Notific( 'Hello', {
+	body: 'notification text',
+	onclick: function ( event )
+	{
+		// event.preventDefault(); keeps page notification opened
+		console.log( 'clicked', this.title );
+	},
+	onclose: function ( event )
+	{
+		console.log( 'closed', this.title );
+	},
+} );
+```
 
 # Services
 

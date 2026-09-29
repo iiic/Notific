@@ -128,7 +128,40 @@
 }
 
 #notific-root small {
-	display: inline-block;
+	display: block;
 	margin-top: 1em;
 	color: #aaa;
+}
+
+/* small displays: notifications across the whole width */
+@media (max-width: 480px) {
+	#notific-root {
+		right: 0.5rem;
+		bottom: 0.5rem;
+		left: 0.5rem;
+		width: auto;
+		pointer-events: none;
+	}
+
+	#notific-root label {
+		width: auto;
+		margin-bottom: 0.5rem;
+		pointer-events: auto;
+	}
+}
+
+/* very narrow or low displays (phone in landscape): more compact notifications */
+@media (max-width: 360px), (max-height: 480px) {
+	#notific-root label {
+		min-height: 0;
+	}
+
+	#notific-root img {
+		width: 48px;
+		height: 48px;
+	}
+
+	#notific-root strong {
+		font-size: medium;
+	}
 }

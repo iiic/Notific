@@ -20,7 +20,9 @@ const NotificPrivate = class
 	static IMAGE_NODE_NAME = 'IMG';
 	static BR_NODE_NAME = 'BR';
 	static NOTIFIC_ID_STARTS_ON = 1;
+	static REMOVE_CLOSED_AFTER = 1000; // in ms, when closing CSS transition doesn't end sooner
 	static askForPermissionsListenerAdded = false;
+	static importWithIntegrityModule = null; // Promise, the module is checked and imported only once for all notifications
 
 	/**
 	 * @public
@@ -67,7 +69,7 @@ const NotificPrivate = class
 			permissionsResultAlreadyGranted: 'You have already allowed the default browser Notification for this app.',
 		},
 		CSSStyleSheets: [
-			{ href: '/notific.css', integrity: 'sha256-DErgeoS4SQg0UMgS8E4mhJbyqNPHbyooBGsPqlRQviw=' }
+			{ href: '/notific.css', integrity: 'sha256-SkgJoe/wjtKXf55jpgm7IqMMg/kuT2a16X6bN8t3Xok=' }
 		],
 		preloadImages: [], // can be used if css contains images
 		modulesImportPath: 'https://iiic.dev/js/modules',
@@ -93,13 +95,39 @@ const NotificPrivate = class
 
 		return new Promise( ( /** @type { Function } */ resolve ) =>
 		{
-			const ip = settings && settings.modulesImportPath ? settings.modulesImportPath : this.settings.modulesImportPath;
-			import( ip + '/importWithIntegrity.mjs' ).then( ( /** @type {Module} */ module ) =>
+			if ( !NotificPrivate.importWithIntegrityModule ) {
+				const ip = settings && settings.modulesImportPath ? settings.modulesImportPath : this.settings.modulesImportPath;
+
+				/** @type {String} */
+				const url = new URL( ip + '/importWithIntegrity.mjs', document.baseURI ).href;
+
+				// same way as importWithIntegrity() itself: fetch with integrity check, then import of exactly the checked content
+				NotificPrivate.importWithIntegrityModule = fetch( url, {
+					integrity: 'sha256-xNVItOxV96liXsfETgILVAGjD0YFTJt8Qcke82ymlQk=',
+				} ).then( ( /** @type {Response} */ response ) =>
+				{
+					return response.arrayBuffer();
+				} ).then( ( /** @type {ArrayBuffer} */ source ) =>
+				{
+					/** @type {String} */
+					const blobUrl = URL.createObjectURL( new Blob( [ source ], { type: 'text/javascript' } ) );
+
+					return import( blobUrl ).finally( () =>
+					{
+						URL.revokeObjectURL( blobUrl );
+					} );
+				} ).catch( ( /** @type {Error} */ error ) =>
+				{
+					NotificPrivate.importWithIntegrityModule = null; // next notification can try it again
+					throw error;
+				} );
+			}
+			NotificPrivate.importWithIntegrityModule.then( ( /** @type {Module} */ module ) =>
 			{
 				/** @type {Function} */
 				this.importWithIntegrity = module.importWithIntegrity;
 				resolve( true );
-			} ).catch( () =>
+			} ).catch( ( /** @type {Error} */ error ) =>
 			{
 				const SKIP_SECURITY_URL = '#skip-security-test-only'
 				if ( window.location.hash === SKIP_SECURITY_URL ) {
@@ -114,7 +142,7 @@ const NotificPrivate = class
 					};
 					resolve( true );
 				} else {
-					throw 'Security Error : Import with integrity module is missing! You can try to skip this error by adding ' + SKIP_SECURITY_URL + ' hash into website URL';
+					throw 'Security Error : Import with integrity module is missing, corrupted or blocked by Content Security Policy (' + error + ')! You can try to skip this error by adding ' + SKIP_SECURITY_URL + ' hash into website URL';
 				}
 			} );
 		} );
@@ -172,6 +200,19 @@ const NotificPrivate = class
 		this.rootElement.appendChild( input );
 		this.rootElement.appendChild( label );
 
+		input.addEventListener( 'change', () =>
+		{
+			const remove = () =>
+			{
+				input.remove();
+				label.remove();
+			};
+			label.addEventListener( 'transitionend', remove ); // closing CSS transition is over
+			setTimeout( remove, NotificPrivate.REMOVE_CLOSED_AFTER ); // no transition (no CSS, closed during entry animation…)
+		}, {
+			once: true,
+		} );
+
 		console.groupEnd();
 
 		return input;
@@ -190,7 +231,7 @@ const NotificPrivate = class
 		},
 		hiddenInputRadio: ( /** @type {String} */ id ) =>
 		{
-			return new Promise( ( /** @type { Function } */ resolve ) =>
+			return new Promise( ( /** @type { Function } */ resolve, /** @type { Function } */ reject ) =>
 			{
 				/** @type {HTMLInputElement} */
 				const input = ( document.createElement( NotificPrivate.INPUT_NODE_NAME ) );
@@ -207,10 +248,13 @@ const NotificPrivate = class
 					new bindFunction.append( Element );
 					input.bindFunction( 'close', function ()
 					{
-						this.checked = true;
+						if ( !this.checked ) {
+							this.checked = true;
+							this.dispatchEvent( new Event( 'change', { bubbles: true } ) ); // same as closing by click on the label
+						}
 					} );
 					resolve( input );
-				} );
+				} ).catch( reject ); // e.g. integrity check failed, onerror handler gets it
 			} );
 		},
 		singleFlashLabel: ( /** @type {String} */ id ) =>
@@ -632,6 +676,47 @@ export class Notific
 		}
 	}
 
+	/**
+	 * @description : call user's event handler onclick, onclose, onerror or onshow (if it's set), 'this' in handler is Notific instance
+	 * @returns {Boolean} handler was called
+	 */
+	callEventHandler ( /** @type {String} */ type, /** @type {Event} */ event )
+	{
+		/** @type {Function | null} */
+		const handler = this[ 'on' + type ];
+
+		if ( typeof handler === 'function' ) {
+			handler.call( this, event );
+			return true;
+		}
+		return false;
+	}
+
+	appendEventsOn ( /** @type {HTMLInputElement | Notification} */ notification )
+	{
+		if ( notification instanceof HTMLInputElement ) {
+			notification.labels[ 0 ].addEventListener( 'click', ( /** @type {MouseEvent} */ event ) =>
+			{
+				this.callEventHandler( 'click', event ); // event.preventDefault() keeps notification opened
+			} );
+			notification.addEventListener( 'change', () =>
+			{
+				this.callEventHandler( 'close', new Event( 'close' ) );
+			}, {
+				once: true,
+			} );
+			this.callEventHandler( 'show', new Event( 'show' ) );
+		} else {
+			[ 'click', 'close', 'error', 'show' ].forEach( ( /** @type {String} */ type ) =>
+			{
+				notification.addEventListener( type, ( /** @type {Event} */ event ) =>
+				{
+					this.callEventHandler( type, event );
+				} );
+			} );
+		}
+	}
+
 	async addCSSStyleSheets ()
 	{
 		console.debug( '%c Notific %c addCSSStyleSheets',
@@ -818,7 +903,13 @@ export class Notific
 			this.initRootElement();
 			this.propagate().then( ( /** @type {HTMLInputElement | Notification} */ notification ) =>
 			{
+				this.appendEventsOn( notification );
 				this.appendAutoCloseOn( notification );
+			} ).catch( ( /** @type {Error} */ error ) =>
+			{
+				if ( !this.callEventHandler( 'error', new ErrorEvent( 'error', { error: error, message: String( error ) } ) ) ) {
+					throw error; // without onerror handler keep the error visible in console
+				}
 			} );
 			this.showResult();
 		} );
