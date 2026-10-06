@@ -1,8 +1,17 @@
+/** @type {Map<String, Promise>} one fetch and one import per url */
+const imports = new Map();
+
 export function importWithIntegrity ( /** @type {String} */ path, /** @type {String} */ integrity )
 {
 	const POSSIBLE_HASHES = [ 'sha256', 'sha384', 'sha512' ]; // same length… 6 chars
 	const INTEGRITY_DIVIDER = '-';
 
+	/** @type {String} */
+	const url = new URL( path, document.baseURI ).href;
+
+	if ( imports.has( url ) ) {
+		return imports.get( url );
+	}
 	if ( !integrity ) {
 		integrity = 'is missing!';
 	}
@@ -13,19 +22,26 @@ export function importWithIntegrity ( /** @type {String} */ path, /** @type {Str
 		integrity = POSSIBLE_HASHES[ 0 ] + INTEGRITY_DIVIDER + integrity;
 	}
 
-	/** @type {HTMLScriptElement} */
-	const element = ( document.createElement( 'SCRIPT' ) ); // link rel="preload" also working, but NOT in Firefox :(
-
-	element.type = 'module';
-	element.src = path;
-	element.integrity = integrity;
-	element.setAttribute( 'crossorigin', 'anonymous' );
-	document.head.appendChild( element );
-	return new Promise( ( /** @type {Function} */ resolve ) =>
+	// fetch() rejects when the file doesn't match integrity, then exactly this checked content is imported through blob: url
+	// (import( url ) would download the file again, without any check)
+	imports.set( url, fetch( url, {
+		integrity: integrity,
+	} ).then( ( /** @type {Response} */ response ) =>
 	{
-		import( path ).then( ( /** @type {Module} */ module ) =>
+		return response.arrayBuffer();
+	} ).then( ( /** @type {ArrayBuffer} */ source ) =>
+	{
+		/** @type {String} */
+		const blobUrl = URL.createObjectURL( new Blob( [ source ], { type: 'text/javascript' } ) );
+
+		return import( blobUrl ).finally( () =>
 		{
-			resolve( module );
+			URL.revokeObjectURL( blobUrl );
 		} );
-	} );
+	} ).catch( ( /** @type {Error} */ error ) =>
+	{
+		imports.delete( url ); // next call can try it again
+		throw error;
+	} ) );
+	return imports.get( url );
 }

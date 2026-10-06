@@ -3,8 +3,9 @@
 
 <head>
 	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Notific html example</title>
-	<link rel="stylesheet" href="/notific.css" crossorigin="anonymous" integrity="sha256-DErgeoS4SQg0UMgS8E4mhJbyqNPHbyooBGsPqlRQviw=">
+	<link rel="stylesheet" href="/notific.css" crossorigin="anonymous" integrity="sha256-SkgJoe/wjtKXf55jpgm7IqMMg/kuT2a16X6bN8t3Xok=">
 </head>
 
 <body>
@@ -12,11 +13,12 @@
 	<h1>Notific v 0.3</h1>
 	<p>On page or native Notifications</p>
 	<p>Just vanilla javascript, no <s>jQuery</s> or other libraries. Styles and examples included in repo. Same parameters as browser's default <code>Notification()</code> function</p>
-	<strong>Whats happening?</strong>
-	<p>This page is showing notifications periodically every 8 seconds, and automatically hide them 15 seconds from display. (so max 2 notifications at the same tame).</p>
+	<strong>What's happening?</strong>
+	<p>This page is showing notifications periodically every 8 seconds, and automatically hide them 15 seconds from display. (so max 2 notifications at the same time).</p>
 	<p>When tab is active notification is on page, when you switch to another tab, notifications will be shown by browser <code>Notification()</code> function.</p>
-	<p>If native notifications are not working <button id="get-notification-permission">Get permissions for <code>Nofification()</code> by clicking this button</button></p>
+	<p>If native notifications are not working <button id="get-notification-permission">Get permissions for <code>Notification()</code> by clicking this button</button></p>
 	<p>The described behavior can be changed using the settings by inlined <code>text/json</code> object.</p>
+	<p>Event handlers <code>onclick</code>, <code>onclose</code>, <code>onerror</code> and <code>onshow</code> work for page and also for browser notifications (first notification writes them into console).</p>
 	<hr>
 	<h2 id="possible-problems">Possible problems?</h2>
 	<p>The mjs extension must have the correct mime type set to <code>text/javascript</code>, if it is too laborious, rename the suffix from <code>.mjs</code> to <code>.js</code>.</p>
@@ -47,11 +49,14 @@
 			}
 		}
 	</script>
-	<script type="module" src="/notific.mjs?v=0.3" crossorigin="anonymous" integrity="sha256-wuA31+60YeoRKlFT/YZoVHhDEK5aqPz+XO+e4tI3e+s="></script>
+	<script type="module" src="/notific.mjs?v=0.3" crossorigin="anonymous" integrity="sha256-3nzzhRl/ewML9yvxIwoj5N/5d+GVSElKo+IGAvdHzrI="></script>
 	<script type="module">
 		new Notific( 'now there will be notifications', {
 			body: 'every 8 seconds, till the end of the tab',
 			image: '/favicon.png',
+			onshow: function ( event ) { console.log( 'Notific', event.type, this.title ); },
+			onclick: function ( event ) { console.log( 'Notific', event.type, this.title ); },
+			onclose: function ( event ) { console.log( 'Notific', event.type, this.title ); },
 		} );
 
 		// new Notification( 'now there will be notifications', {
