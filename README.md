@@ -1,9 +1,9 @@
-# Notific v 0.3
+# Notific v 0.4
 
 On page or native Notifications.
 Just vanilla javascript, no `jQuery` or other libraries. Styles and examples included in repo. Same parameters as browser's default `Notification()` function.
 
-# What's new in version 0.3 ?
+# What's new in version 0.4 ?
 - script settings by json file
 - possible preload images and prefetch video
 - repaired bug with 2 notifications at the same time and duplicate element ids
@@ -21,7 +21,7 @@ Polyfill is in single javascript module file `notific.mjs`. Include it into your
 		"askForPermissionsId": "get-notification-permission"
 	}
 </script>
-<script type="module" src="/notific.mjs?v=0.3" crossorigin="anonymous" integrity="sha256-3nzzhRl/ewML9yvxIwoj5N/5d+GVSElKo+IGAvdHzrI="></script>
+<script type="module" src="/notific.mjs?v=0.4" crossorigin="anonymous" integrity="sha256-3nzzhRl/ewML9yvxIwoj5N/5d+GVSElKo+IGAvdHzrI="></script>
 ```
 
 All other files like `example-usage.html` and `notific.css` are there to help, but they are not needed for Notific function.

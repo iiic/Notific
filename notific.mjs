@@ -6,7 +6,7 @@
 * @see https://iiic.dev/notific
 * @license https://creativecommons.org/licenses/by-sa/4.0/legalcode.cs CC BY-SA 4.0
 * @since Q2 2020
-* @version 0.3
+* @version 0.4
 * @readonly
 */
 const NotificPrivate = class
@@ -394,7 +394,7 @@ const NotificPrivate = class
 * @see https://iiic.dev/notific
 * @license https://creativecommons.org/licenses/by-sa/4.0/legalcode.cs CC BY-SA 4.0
 * @since Q2 2020
-* @version 0.3
+* @version 0.4
 */
 export class Notific
 {
